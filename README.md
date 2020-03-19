@@ -17,18 +17,16 @@
 
 ### Directory in repository
 
-- week 01 — 각 주 별 폴더
-  - chapter 01 — 그 주에 진행 될 chapter
+- chapter 01 — 그 주에 진행 될 chapter
     - member1's folder — 진행 될 chapter를 공부하고 정리 할 member의 folder
       - chapter 01 정리.md
       - 참고자료1.doc
       - 참고자료2.doc
-  - member2's folder
-    - chapter 01 정리.md
-    - 참고자료1.doc
-  - chapter 02
-- week 02
-  - chapter 03
+    - member2's folder
+        - chapter 01 정리.md
+        - 참고자료1.doc
+- chapter 02
+- chapter 03
 
 ### Branch structure
 
