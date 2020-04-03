@@ -9,10 +9,10 @@
     - 다른 토큰필터도 적용 가능하다
     - 여러 개의 필터를 중첩하여 사용 가능하다
     - analyzer과 유사하나 다른점은 tokenizer 적용 여부이다
-    - tokenizer는 사용 불가하며, 일부의 캐릭터필터와 토큰필터를 적용할 수 있다
+    - tokenizer는 사용 불가하며, 캐릭터필터와 일부 토큰필터를 적용할 수 있다
     - 글자당 적용하는 filter는 가능한데, 전체단어를 봐야하는 filter는 적용 불가
     - ex) lowercasing filter 적용 가능하지만, stemming filter는 불가함
-    - 사용 가능한 filters
+    - 사용 가능한 token filters
         - ```
           버전 7.6
           he current list of filters that can be used in a normalizer is following: 
