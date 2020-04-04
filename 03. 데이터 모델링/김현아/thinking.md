@@ -36,9 +36,12 @@
     - 아래 두 파라미터를 보고 색인을 하지 않고 검색하거나, 검색은 안되지만 _source에 표시된다는 것이 어떤 의미인지 궁금해짐
         - dynamic 옵션 중 false : 색인되지 않아 검색은 안되지만 _source에 표시됨
         - enabled : 검색은 하고 싶지만 색인은 하고 싶지 않는 경우 사용
-    - 아직 잘 이해가 안감
+    - 아직 잘 이해가 안감 => 온라인 스터디를 통해 이해함 (회의록_2020-04-04)
+    - 검색 조건으로는 제외하지만, 검색 결과로 노출하고 싶다는 의미
 4. index와 enabled의 차이점
     - https://stackoverflow.com/questions/50836504/elasticsearch-mapping-parameters-index-vs-enabled
+    - enabled : 
+    - index : 
 5. similarity 유사도 알고리즘 BM25 VS TF/IDF
     - 단어의 빈도수
         - TF/IDF : common words can still influence the score
