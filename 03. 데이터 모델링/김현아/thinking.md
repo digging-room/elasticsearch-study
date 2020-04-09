@@ -59,3 +59,36 @@
    # _routing 메타 필드를 사용할 경우 색인할 때 해당 문서들은 동일한 라우팅ID를 지정한다. 문서 ID를 사용하는 대신 파라미터로 입력한 _routing 값이 샤드를 결정하는데 사용된다.
    Hash (_routing) % num_of_shards
    ```
+##3.3 필드 데이터 타입
+1. 매핑 파라미터 'norms'과 Text 데이터타입의 'norms' 파라미터는 같은가?
+    - 이 둘은 다른 것이다.
+    - 매핑 파라미터 norms
+        - p73 설명 : 문서의 _score 값 계싼에 필요한 정규화 인수를 사용할지 여부를 설정함. 기본값은 true. _score 계산이 필요없는 경우 비활성화해서 디스크 공간 절약 가능
+        - 공식문서 : https://www.elastic.co/guide/en/elasticsearch/reference/current/norms.html
+    - Text 데이터 타입의 norms 파라미터
+        - p88 설명 : 유사도 점수를 산정할 때 필드 길이를 고려할지를 결정한다. 기본값은 true
+        - 공식문서 : https://www.elastic.co/guide/en/elasticsearch/reference/current/text.html
+
+2. 문자열의 종류
+    - 공식문서 : https://esbook.kimjmin.net/07-settings-and-mappings/7.2-mappings/7.2.1
+    - 선언 가능한 문자열 타입은 text, keyword (2.x 버전 이전에는 string 하나의 타입만 존재)
+
+3. Array 타입의 문자열의 타입은 무엇일까?
+    - 내가 지정한 걸로 되겠지
+
+##3.4 엘라스틱서치 분석기
+1. 동의어 사전 적용 시점에 내용 중 이해가 가지 않아 여러 번 읽은 문단 (p128)
+    > 검색 시점에는 사전의 내용이 변경되더라도 해당 내용이 반영된다. 하지만 색인 시점에 동의어 사전이 사용됐다면 사전의 내용이 변경되더라도 색인이 변경되지 않는다. 이 경우에는 기존 색인을 모두 삭제하고 색인을 다시 생성해야만 변경된 사전 내용이 적용된다. 이러한 문제점 때문에 동의어 사전이 빈번하게 수정되는 인덱스의 경우 색인 시점에는 적용하지 않고 검색 시점에만 저굥하는 방식으로 이러한 문제점을 해결하기도 한다.
+    - 동의어 사전의 내용 변경되었을 때, 검색 시점에는 이를 반영하는데 색인 시점에는 반영하지 않는다는 뜻이겠지?
+###3.5 Document API 이해하기
+1. 예전 버전의 문서는 어떻게 확인할까?
+    - 안된대. 버전만 관리하고 이전 _source는 갖고 있지 않나봐.
+    - Is it possible to get older versions of any document : <https://discuss.elastic.co/t/is-it-possible-to-get-older-versions-of-any-document/7019>
+2. 예전 버전의 문서 삭제
+    - segments가 인덱스를 병합하기 때문에 언젠가는 예전 버전의 문서는 자동적으로 삭제됨
+    - Deleting lod versions <https://discuss.elastic.co/t/deleting-old-versions/4689/2>
+3. _source_exclude로 제외한 필드는 검색 결과에서 제외된다. 그렇다면 검색 대상에서도 제외될까?
+    - 웅먄ㅇ먕먕
+4. _source가 비활성화 혹은 일부 필드가 검색이 안될 경우, Update API 가능한가?
+    - _source 는 원천데이터이고, Update API는 _source의 값을 가지고 재색인을 함
+    - 그렇다면 Update API가 _source에 항상 접근할 수 있나? 흐음. 수정되면 안되는 필드는 어떻게 보호할까?
