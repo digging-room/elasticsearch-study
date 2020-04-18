@@ -1,0 +1,46 @@
+# Nori 형태소 분석기
+루씬 프로젝트에서 공식적으로 제공되는 한글 형태소 분석기인 Nori는 엘라스틱서치 6.4버전에서 릴리즈됐다. 기존 형태소 분석기에 비해 30% 이상 빠르고 메모리 사용량도 현저하게 줄었으며, 시스템 전반에 영향을 주지 않게 최적화되었다.
+
+## Nori 형
+### 설치
+1. 플러그인 설치
+    - 공식적으로 지원은 되지만 기본 플러그인은 아니다.
+    - 따라서 플러그인을 직접 설치해야한다.
+      ```
+      bin/elastisearch-plugin install analysis-nori
+      ```
+2. 인덱스 생성
+    - 편한 테스트를 위해 nori_tokenizer를 적용한 분석기를 인덱스에 생성해보자
+        ```
+        PUT nori_analyzer
+        {
+          "settings": { 
+            "index":{
+              "analysis":{
+                "tokenizer":{
+                  "nori_user_dict_tokenizer":{
+                    "type": "nori_tokenizer",
+                    "decompound_mode": "mixed",
+                    "user_dictionary": "userdict_ko.txt"
+                  }
+                },
+                "analyzer":{
+                  "nori_token_analyzer":{
+                    "type":"custom",
+                    "tokenizer": "nori_user_dict_tokenizer"
+                  }
+                }
+              }
+            }
+          }
+        }
+        ```
+3. 테스트
+    - 생성된 nori_analyzer 인덱스에 생성된 nori_token_analyzer를 테스트해보자
+    - ```
+        POST nori_analyzer/_analyze
+        {
+          "analyzer": "nori_token_analyzer",
+          "text": "잠실역"
+        }
+      ```
