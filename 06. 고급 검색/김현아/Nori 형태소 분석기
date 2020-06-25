@@ -1,0 +1,182 @@
+# Nori 형태소 분석기
+루씬 프로젝트에서 공식적으로 제공되는 한글 형태소 분석기인 Nori는 엘라스틱서치 6.4버전에서 릴리즈됐다. 기존 형태소 분석기에 비해 30% 이상 빠르고 메모리 사용량도 현저하게 줄었으며, 시스템 전반에 영향을 주지 않게 최적화되었다.
+
+## Nori 형태소 분석기 구성
+  - Nori 분석기는 하나의 토크나이저와 두 개의 토큰 필터로 구성되어 있다.
+  1. Nori tokenizer
+      - decompound_mode : 복합명사 처리 방식 결정
+      
+        |파라미터값|설명|예제|
+        |---|---|---|
+        |none|복합명사 분리 X|잠실역|
+        |discard|복합명사로 분리하고 원본 데이터는 삭제함|잠실역=>[잠실,역]|
+        |mixed|복합명사로 분리하고 원본 데이터는 유지함|잠실역=>[잠실,역,잠실역]|
+      - user_dictionary : 사용자 정의 사전
+      - Nori 토크나이저는 내부적으로 세종 말뭉치와 mecab-ko-dic 사전을 사용함
+      - 서버가 설치된 config 디렉터리 아래에 사전파일을 생성한 후, 인덱스 매핑 시 분석기의 파라미터로 사전 경로를 등록하면 됨
+      
+  2. nori_part_of_speech 토큰 필터
+     - 품사 태그 세트와 일치하는 토큰을 찾아 제거하는 토큰 필터
+     - 역색인될 명사를 선택적으로 고를 수 있음
+     - 사용하고 싶지 않은 형태소 제거 가능
+     - stoptags 파라미터 : 분리된 토큰에서 제거할 특정 형태소를 지정할 수 있음.
+       한글 형태소의 품사(tag)는 아래에서 따로 정리함
+     
+  3. nori_readingform 토큰 필터
+     - 한자를 한글로 변경하는 역할의 필터
+     - 별도의 파라미터는 제공하지 않음
+     - "中國" ==> "중국" 으로 변환됨
+     
+## Nori 플러그인 설치와 테스트
+1. 플러그인 설치
+    - 공식적으로 지원은 되지만 기본 플러그인은 아니다.
+    - 따라서 플러그인을 직접 설치해야한다.
+      ```
+      bin/elastisearch-plugin install analysis-nori
+      ```
+2. 인덱스 생성
+    - 편한 테스트를 위해 nori_tokenizer를 적용한 분석기를 인덱스에 생성해보자
+        ```
+        PUT my_nori_index
+        {
+          "settings": {
+            "index": {
+              "analysis": {
+                "tokenizer":{
+                  "my_nori_tokenizer":{
+                    "type": "nori_tokenizer",
+                    "decompound_mode": "mixed",
+                    "user_dictionary": "userdict_ko.txt"
+                  }
+                },
+                "analyzer": {
+                  "my_nori_analyzer": {
+                    "tokenizer": "my_nori_tokenizer",
+                    "filter": [
+                      "my_nori_filter"
+                    ]
+                  }
+                },
+                "filter": {
+                  "my_nori_filter": {
+                    "type": "nori_part_of_speech",
+                    "stoptags": [
+                      "SP"   
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+        ```
+    - 참고 : stoptags를 지정하지 않을 경우 아래와 같은 형태소가 기본적으로 제외된다.
+    - "stoptags": [
+                    "E",
+                    "IC",
+                    "J",
+                    "MAG", "MAJ", "MM",
+                    "SP", "SSC", "SSO", "SC", "SE",
+                    "XPN", "XSA", "XSN", "XSV",
+                    "UNA", "NA", "VSV"
+                ]
+3. 테스트 (1)
+    - 생성된 my_nori_index 인덱스에 생성된 nori_token_analyzer를 테스트해보자
+    - ```
+        POST my_nori_index/_analyze
+        {
+          "analyzer": "my_nori_analyzer",
+          "text": "잠실역",
+          "explain": true
+        }
+      ```
+4. 테스트 (2)
+    - 기본 nori_tokenizer를 이용해보자
+    - ```
+        GET _analyze
+        {
+          "tokenizer": "nori_tokenizer",
+          "text": "잠실역",
+          "explain": true
+        }
+      ```
+
+## 한글 형태소
+- 형태소 : 의미를 가지는 가장 작은 단위
+
+### 한글의 형태소 (5언 9품사)
+- <img src="https://dbscthumb-phinf.pstatic.net/4751_000_5/20170329194307224_J5ZI9D2Q6.jpg/C-A-A2y-E0-0401-.jpg?type=m4500_4500_fst&wm=N">
+- 체언 : 문장에서 몸과 같은 역할
+    - 명사 : 사람/사물 등의 이름이 되는 말
+    - 대명사 : 명사를 대신하여 쓸 수 있는 말
+    - 수사 : 수량이나 순서를 나타내는 품사
+- 수식언 : 다른 말을 꾸며주는 역할
+    - 관형사 : 체언을 수식하는 낱말 (새, 헌, 모든, 무슨, 별의별)
+    - 부사 : 용언을 수식하는 낱말 (그러나, 그런데, 빨리, 아주, 과연)
+- 관계언 : 문장에 쓰인 낱말들의 관계를 나타냄
+    - 조사 : 은, 는, 이, 가, 이와, 을, 와, 마저
+- 독립언 : 다른 말고 ㅏ관계없이 독립적으로 사용됨
+    - 감탄사
+- 용언 : 사물이나 사람의 움직임, 상태, 성질을 설명해주는 역할
+    - 동사 : 주어의 동작을 서술
+    - 형용사 : 주어의 상태나 속성을 설명
+
+### 어근과 접사
+- 어근 : 단어의 실질적 의미를 나타내는 중심부분 (맨'밥', 맨'다리', '멋'스럽다)
+- 접사 : 단어에서 부차적인 의미를 지닌 부분 ('맨'밥, '맨'다리, 멋'스럽다')
+
+### 접사
+- 접두사 : 어근의 앞에 붙어서 특정한 뜻을 더하거나 강조하면서 새로운 말을 만드는 역할 (맨 : 맨밥, 맨다리 / 시 : 시댁, 시누이)
+- 접미사 : 어근이나 단어 뒤에 붙어서 새로운 단어를 만드는 역할 (-롭-: 향기롭다, 평화롭다 / -개 : 덮개, 지우개, 코흘리개)
+
+## stoptags 파라미터
+- Nori analyzer에서 제공하는 nori_part_of_speech 토큰 필터의 stoptags 파라미터를 통해 특정 형태소의 품사를 제외하고 색인할 수 있다.
+- 파라미터의 값의 의미와 예시를 통해 나에게 필요한 형태소가 무엇이고, 불필요한 형태소가 무엇인지 파악해보자.
+- 공식문서 7.6 : https://www.elastic.co/guide/en/elasticsearch/plugins/current/analysis-nori-analyzer.html
+- 공식가이드북 : https://esbook.kimjmin.net/06-text-analysis/6.7-stemming/6.7.2-nori
+- 영문명 및 속성 발췌 : 루씬 API 8.4.0 : https://lucene.apache.org/core/8_4_0/analyzers-nori/org/apache/lucene/analysis/ko/POS.Tag.html 
+- 한글명 발췌 : http://kkma.snu.ac.kr/documents/?doc=postag
+- 한글 검색에서는 보통 명사, 동명사 정도만을 검색하고 조사, 형용사 등은 제거하는 것이 바람직하기 때문에 기본적으로 제외되는 형태소들이 있음
+-
+|값(tag)|영문명|한글명|예시|
+|---|---|---|---|
+|E|Verbal endings|어미|사랑/하(E)/다|
+|IC|Interjection|감탄사|와우(IC), 맙소사(IC)|
+|J|Ending Particle|조사|나/는(J)/너/에게(J)|
+|MAG|General Adverb|일반 부사|빨리(MAG)/달리다, 과연(MAG)/범인/은/누구/인가|
+|MAJ|Conjunctive adverb|접속 부사|그런데(MAJ), 그러나(MAJ)|
+|MM (*)|ES:Modifier(한정사), 루씬 API:Determiner(관형사)|설명이 다름||
+|NA|Unknown|알 수 없음||
+|NNB|Dependent noun (following nouns)|의존명사||
+|NNBC|Dependent noun|의존명사(단위를 나타내는 명사)||
+|NNG|General Noun|일반 명사|강아지(NNG)|
+|NNP|Proper Noun|고유 명사|비숑(NNP)|
+|NP|Pronoun|대명사|그것(NP), 이거(NP)|
+|NR|Numeral|수사|하나(NR)밖에, 칠(NR) 더하기 삼(NR)|
+|SC(*)|Separator (· / :)|구분자|nori_tokenizer가 특수문자 제거|
+|SE(*)|Ellipsis|줄임표(...)|nori_tokenizer가 특수문자 제거|
+|SF(*)|Terminal punctuation (? ! .)|물음표, 느낌표, 마침표|nori_tokenizer가 특수문자 제거|
+|SH|Chinese character|한자|中國(SH)|
+|SL|Foreign language|외국어|hello(SL)|
+|SN|Number|숫자|1(SN)|
+|SP|Space|공백||
+|SSC(*)|Closing brackets|닫는 괄호 ),] |nori_tokenizer가 특수문자 제거|
+|SSO(*)|Opening brackets|여는 괄호 (,[ |nori_tokenizer가 특수문자 제거|
+|SY|Other symbol|심벌||
+|UNA|Unknown|알 수 없음||
+|UNKNOWN|Unknown|알 수 없음||
+|VA|Adjective|형용사|하얀(VA)/눈|
+|VCN|Negative designator|부정 지정사(서술격조사)|사람/이/아니(VCN)/다|
+|VCP|Positive designator|긍정 지정사(서술격조사)|사람/이(VCN)/다|
+|VSV|Unknown|알 수 없음||
+|VV|Verb|동사|움직이(VV)/다,먹(VV)/다|
+|VX|Auxiliary Verb or Adjective|보조 용언|가지/고/싶(VX)/다, 먹/어/보(VX)/다|
+|XPN(*)|Prefix|접두사(체언 접두사?)|ES에서 매핑되는 단어를 찾기 어렵다|
+|XR(*)|Root|어근|ES에서 매핑되는 단어를 찾기 어렵다|
+|XSA|Adjective Suffix|형용사 파생 접미사|멋/스럽(XSA)/다|
+|XSN(*)|Noun Suffix|명사 파생 접미사|ES에서 매핑되는 단어를 찾기 어렵다|
+|XSV(*)|Verb Suffix|동사 파생 접미사|ES에서 매핑되는 단어를 찾기 어렵다|
+
+- 실제 국립국어원에서 정한 단어의 품사와 Nori의 갭이 존재한다.
+    - 접미사, 접두사에 대한 stoptags가 존재하지만 매핑된 단어는 많지 않다.
+    - 까불(VV)/거리(XSV)/다(E) ==> 까불거리(VV)/다(E)
